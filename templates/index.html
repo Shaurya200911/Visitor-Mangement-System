@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Visitor Entry Form</title>
+<link rel="stylesheet" href="static/styles.css">
+<script src="static/script.js"></script>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="text-center mb-4 mt-4">
+        <h1 class="mb-4">Visitor Entry Form</h1>
+        {% if phototaken == 1 %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <h3>Photo Taken Successfully</h3>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close" onclick="resetbutton()"></button>
+            </div>
+        {% endif %}
+        <form action="{{url_for('takephoto')}}" method="post" id="form">
+            <button class="btn btn-outline-dark" type="submit">Take Photo</button>
+        </form>
+        <form action="{{url_for('submitform')}}" method="post" id="form1">
+            <div class="row g-3 mt-3">
+              <div class="col-6">
+                <input type="text" class="form-control" placeholder="First name" name="firstname" id="firstname" aria-label="First name" required>
+              </div>
+                <div class="col-6">
+                <input type="text" class="form-control" placeholder="Last name" name="lastname" id="lastname" aria-label="Last name" required>
+              </div>
+              <div class="col-6">
+                <input type="text" class="form-control" placeholder="Phone number" name="phoneno" id="phoneno" aria-label="Phone number" required>
+              </div>
+              <div class="col-6">
+                    <input type="text" class="form-control" placeholder="Company name" name="company" id="company" aria-label="Company name" required>
+              </div>
+              <div class="col-6">
+                    <select class="form-select" name="Branch" id="Branch" aria-label="Default select example" required>
+                      <option selected>Select Branch of Komal</option>
+                      <option value="ambernath">Ambernath</option>
+                      <option value="mahim">Mahim</option>
+                      <option value="dombivali">Dombivali</option>
+                    </select>
+              </div>
+                <div class="col-6">
+                    <input class="form-control" placeholder="Person of Interest" name="poi" id="poi" aria-label="Person of Interest" required>
+                </div>
+                <div class="col-12">
+                    <textarea class="form-control" name="reason" id="reason" required>Reason For Visit:</textarea>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-dark">Submit</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<div class="d-flex align-items-center my-4">
+  <hr class="flex-grow-1">
+  <span class="px-3">Admin Controls</span>
+  <hr class="flex-grow-1">
+</div>
+<div class="container-fluid text-center">
+  <div class="row">
+    <div class="col">
+      <button class="btn btn-warning">Login as Admin</button>
+    </div>
+    <div class="col">
+      <button class="btn btn-info">Create administrator account</button>
+    </div>
+    <div class="col">
+      <button class="btn btn-warning">Login as Guard</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
