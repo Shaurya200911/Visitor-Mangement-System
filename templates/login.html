@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Login</title>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid text-center">
+<h1>Login</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    <form method="post" action="{{url_for('login')}}" id="loginform">
+        <div class="row g-3 mt-3">
+          <div class="col-12">
+            <input type="text" class="form-control" placeholder="First name" aria-label="First name" name="firstname" id="firstname" required>
+          </div>
+          <div class="col-6">
+            <input type="password" class="form-control" placeholder="Password" aria-label="Password" name="password" id="password" required>
+          </div>
+            <div class="col-6">
+            <input type="text" class="form-control" placeholder="Phone" aria-label="phone" name="phone" id="phone" required>
+          </div>
+            <div class="col-12">
+                <button class="btn btn-warning" type="submit">Login</button>
+            </div>
+        </div>
+    </form>
+    <div class="col-12">
+        <button class="btn btn-link" type="submit" onclick="window.location.href='{{ url_for('signup') }}'">Signup if you don't have an account</button>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Create Administrator</title>
+{% endblock %}
+
+{% block body %}
+<div class="container-fluid text-center">
+    <h1>Create Administrator</h1>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="post" action="{{url_for('signup')}}" id="signupform">
+        <div class="row g-3 mt-3">
+          <div class="col-6">
+            <input type="text" class="form-control" placeholder="First name" aria-label="First name" name="firstname" id="firstname" required>
+          </div>
+          <div class="col-6">
+            <input type="password" class="form-control" placeholder="Password" aria-label="Password" name="password" id="password" required>
+          </div>
+            <div class="col-6">
+            <input type="text" class="form-control" placeholder="Phone" aria-label="phone" name="phone" id="phone" required>
+          </div>
+            <div class="col-6">
+            <input type="text" class="form-control" placeholder="Email" aria-label="email" name="email" id="email" required>
+          </div>
+            <div class="col-6">
+                    <select class="form-select" name="location" id="location" aria-label="Default select example" required>
+                      <option selected>Select Branch of Komal</option>
+                      <option value="ambernath">Ambernath</option>
+                      <option value="mahim">Mahim</option>
+                      <option value="dombivali">Dombivali</option>
+                    </select>
+              </div>
+            <div class="col-6">
+                    <select class="form-select" name="role" id="role" aria-label="Default select example" required>
+                      <option selected>Select Role</option>
+                      <option value="viewer">Viewer</option>
+                      <option value="guard">Guard</option>
+                      <option value="admin">Admin</option>
+                    </select>
+              </div>
+            <div class="col-12">
+                    <select class="form-select" name="job" id="job" aria-label="Default select example" required>
+                      <option selected>Select Job</option>
+                      <option value="ambernath">Ambernath</option>
+                      <option value="mahim">Mahim</option>
+                      <option value="dombivali">Dombivali</option>
+                    </select>
+              </div>
+            <div class="col-12">
+                <button class="btn btn-warning" onclick="window.location.href='{{ url_for('signup') }}'" type="submit">Sign Up</button>
+            </div>
+        </div>
+    </form>
+    <div class="col-12">
+        <button class="btn btn-link" type="submit" onclick="window.location.href='{{ url_for('login') }}'">Login if you already have an Account</button>
+    </div>
+</div>
+{% endblock %}
