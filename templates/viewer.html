@@ -1,67 +1,145 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Viewer Panel</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Viewer Panel</title>
+
+  <!-- links -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 </head>
 <body>
-    <div class="container mt-5">
-        <h2 class="text-center mb-4">Live Visitor View</h2>
+  <div class="mb-3">
+      <h1>Welcome, <strong>{{ user.username }}</strong>!</h1>
+  </div>
 
-        <table class="table table-bordered table-striped">
-            <thead class="table-dark">
-                <tr>
-                    <th>Photo</th>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Last Name</th>
-                    <th>Phone</th>
-                    <th>Company</th>
-                    <th>Time Entry</th>
-                    <th>Action</th>
-                </tr>
-            </thead>
-            <tbody id="visitor-table-body">
-                <!-- Will be filled by JavaScript -->
-            </tbody>
-        </table>
-    </div>
+  <div class="container mt-5">
+    <h2 class="text-center mb-4">Live Visitor View</h2>
+    <div id="root"></div>
+  </div>
 
-    <script>
-        function updateVisitorTable() {
-            fetch('/api/live_visitors')
-                .then(response => response.json())
-                .then(data => {
-                    const tbody = document.getElementById("visitor-table-body");
-                    tbody.innerHTML = "";
-                    data.forEach(visitor => {
-                        tbody.innerHTML += `
-                            <tr>
-                                <td><img src="data:image/jpeg;base64,${visitor.photo}" width="60" height="60" style="object-fit:cover;border-radius:5px;"></td>
-                                <td>${visitor.id}</td>
-                                <td>${visitor.name}</td>
-                                <td>${visitor.lastname}</td>
-                                <td>${visitor.phone}</td>
-                                <td>${visitor.company}</td>
-                                <td>${visitor.timeentry}</td>
-                                <td>
-                                    <form action="/mark_exit/${visitor.id}" method="POST">
-                                        <button type="submit" class="btn btn-sm btn-danger">Mark Exit</button>
-                                    </form>
-                                </td>
-                            </tr>`;
-                    });
-                })
-                .catch(error => console.error("Error loading visitors:", error));
+
+{% raw %}
+<script type="text/babel">
+function ViewerPanel() {
+    const [visitors, setVisitors] = React.useState([]);
+    const [searchTerm, setSearchTerm] = React.useState('');
+    const [sortKey, setSortKey] = React.useState('date');
+
+    React.useEffect(() => {
+        fetchVisitors();
+        const interval = setInterval(fetchVisitors, 60000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const fetchVisitors = async () => {
+        try {
+            const response = await fetch('/api/live_visitors');
+            const data = await response.json();
+            setVisitors(data);
+        } catch (error) {
+            console.error('Error fetching visitors:', error);
         }
+    };
 
-        // Initial load
-        updateVisitorTable();
+    const markExit = async (id) => {
+        await fetch(`/mark_exit/${id}`, { method: 'POST' });
+        setVisitors(prev => prev.map(v =>
+            v.id === id ? { ...v, entryexit: 'OUT', timeexit: new Date().toLocaleTimeString() } : v
+        ));
+    };
 
-        // Refresh every 60 seconds
-        setInterval(updateVisitorTable, 60000);
-    </script>
+    const handleSearch = (e) => setSearchTerm(e.target.value);
+    const handleSort = (e) => setSortKey(e.target.value);
+
+    const filteredAndSorted = visitors
+        .filter(v => `${v.name} ${v.lastname} ${v.phone} ${v.company} ${v.personofintrest}`.toLowerCase().includes(searchTerm.toLowerCase()))
+        .sort((a, b) => {
+            if (sortKey === 'date') return new Date(b.date) - new Date(a.date);
+            if (sortKey === 'timeentry') return a.timeentry.localeCompare(b.timeentry);
+            if (sortKey === 'location') return a.location.localeCompare(b.location);
+            if (sortKey === 'personofintrest') return a.personofintrest.localeCompare(b.personofintrest);
+            return 0;
+        });
+
+    return (
+        <div>
+        <div class="mb-3 mt-3 mr-3 text-center">
+            <a href="/download_visitors_csv" class="btn btn-success" target="_blank">
+                Download CSV
+            </a>
+        </div>
+            <div className="row mb-3">
+                <div className="col-md-6">
+                    <input
+                        type="text"
+                        className="form-control"
+                        placeholder="Search by name, phone, company, or person of interest"
+                        value={searchTerm}
+                        onChange={handleSearch}
+                    />
+                </div>
+                <div className="col-md-6">
+                    <select className="form-select" value={sortKey} onChange={handleSort}>
+                        <option value="date">Sort by Date</option>
+                        <option value="timeentry">Sort by Entry Time</option>
+                        <option value="location">Sort by Location</option>
+                        <option value="personofintrest">Sort by Person of Interest</option>
+                    </select>
+                </div>
+            </div>
+
+            <table className="table table-bordered table-striped">
+                <thead className="table-dark">
+                    <tr>
+                        <th>Photo</th>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Company</th>
+                        <th>Location</th>
+                        <th>Date</th>
+                        <th>Entry Time</th>
+                        <th>Exit Time</th>
+                        <th>Status</th>
+                        <th>Person of Interest</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {filteredAndSorted.map(v => (
+                        <tr key={v.id}>
+                            <td><img src={`data:image/jpeg;base64,${v.photo}`} width="60" height="60" style={{ objectFit: 'cover', borderRadius: '5px' }} alt="visitor" /></td>
+                            <td>{v.id}</td>
+                            <td>{v.name} {v.lastname}</td>
+                            <td>{v.phone}</td>
+                            <td>{v.company}</td>
+                            <td>{v.location}</td>
+                            <td>{v.date}</td>
+                            <td>{v.timeentry}</td>
+                            <td>{v.timeexit || '---'}</td>
+                            <td>{v.entryexit}</td>
+                            <td>{v.personofintrest || '---'}</td>
+                            <td>
+                                {v.entryexit === 'IN' && (
+                                    <button className="btn btn-sm btn-danger" onClick={() => markExit(v.id)}>
+                                        Mark Exit
+                                    </button>
+                                )}
+                            </td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
+ReactDOM.render(<ViewerPanel />, document.getElementById('root'));
+</script>
+{% endraw %}
 </body>
 </html>

@@ -42,7 +42,13 @@
                     </select>
               </div>
                 <div class="col-6">
-                    <input class="form-control" placeholder="Person of Interest" name="poi" id="poi" aria-label="Person of Interest" required>
+                    <select class="form-select" name="poi" id="poi">
+                        <option value="none">Person of Interest</option>
+                      {% for user in users %}
+                        <option value="{{ user.username }}">{{ user.username }}</option>
+                      {% endfor %}
+                    </select>
+
                 </div>
                 <div class="col-12">
                     <textarea class="form-control" name="reason" id="reason" required>Reason For Visit:</textarea>

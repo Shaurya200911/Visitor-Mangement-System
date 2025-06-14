@@ -7,6 +7,9 @@ import cv2
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 import base64
+from flask import make_response
+import csv
+from io import StringIO
 
 load_dotenv()
 
@@ -74,9 +77,10 @@ admins = [
 
 @app.route('/')
 def visitorform():
+    users=User.query.all()
     if not session.get('photo_taken'):
         session['photo_taken'] = 0
-    return render_template("index.html", phototaken=session['photo_taken'])
+    return render_template("index.html", phototaken=session['photo_taken'], users=users)
 
 @app.route('/takephoto', methods=["POST"])
 def takephoto():
@@ -152,6 +156,15 @@ def submitform():
                               date=date_now, entryexit='IN', photo=photo_data))
 
     db.session.commit()
+    recipient = User.query.filter_by(username=poi).first()
+    if recipient:
+        msg = Message(
+            subject="New Visitor for You",
+            sender=app.config['MAIL_USERNAME'],
+            recipients=[recipient.email],
+            body=f"""You have a new visitor: <strong>{firstname} {lastname}</strong> from <strong>{company}</strong>.\n Reason:{reasonforvisit}"""
+        )
+        mail.send(msg)
     return redirect('/')
 
 @app.route('/resetbutton', methods=['POST'])
@@ -173,7 +186,7 @@ def login():
         flash("Invalid credentials", "danger")
     return render_template("login.html")
 
-@app.route('/signup', methods=["GET", "POST"])
+@app.route('/signup5764', methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
         username = request.form.get("firstname")
@@ -197,16 +210,24 @@ def signup():
 
 @app.route('/viewer')
 def viewer():
-    if session.get('role') not in ['viewer', 'guard']:
+    if 'user_id' not in session:
         flash("Unauthorized access", "danger")
-        return redirect(url_for('login'))
-    return render_template("viewer.html")
+    user = User.query.get(session['user_id'])
+    return render_template("viewer.html", user=user)
 
 @app.route('/api/live_visitors')
 def live_visitors_api():
-    active_statuses = status.query.filter_by(entryexit='IN').all()
+    subquery = db.session.query(
+        status.visitorid,
+        db.func.max(status.visiters).label("max_visit_id")
+    ).group_by(status.visitorid).subquery()
+
+    latest_statuses = db.session.query(status).join(
+        subquery, (status.visitorid == subquery.c.visitorid) & (status.visiters == subquery.c.max_visit_id)
+    ).all()
+
     output = []
-    for s in active_statuses:
+    for s in latest_statuses:
         v = visitor.query.get(s.visitorid)
         if v:
             output.append({
@@ -217,7 +238,11 @@ def live_visitors_api():
                 'company': v.company,
                 'photo': base64.b64encode(v.photo).decode('utf-8') if v.photo else '',
                 'timeentry': s.timeentry,
-                'entryexit': s.entryexit
+                'timeexit': s.timeexit,
+                'date': s.date,
+                'location': v.location,
+                'entryexit': s.entryexit,
+                'personofintrest': v.personofintrest
             })
     return jsonify(output)
 
@@ -229,6 +254,39 @@ def mark_exit(id):
         stat.entryexit = 'OUT'
         db.session.commit()
     return redirect(url_for("viewer"))
+
+from flask import make_response
+import csv
+from io import StringIO
+
+@app.route('/download_visitors_csv')
+def download_visitors_csv():
+    subquery = db.session.query(
+        status.visitorid,
+        db.func.max(status.visiters).label("max_visit_id")
+    ).group_by(status.visitorid).subquery()
+
+    latest_statuses = db.session.query(status).join(
+        subquery, (status.visitorid == subquery.c.visitorid) & (status.visiters == subquery.c.max_visit_id)
+    ).all()
+
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "Name", "Last Name", "Phone", "Company", "Location", "Date", "Entry Time", "Exit Time", "Status", "Person of Interest"])
+
+    for s in latest_statuses:
+        v = visitor.query.get(s.visitorid)
+        if v:
+            writer.writerow([
+                v.id, v.name, v.lastname, v.phone, v.company, v.location,
+                s.date, s.timeentry, s.timeexit or "---", s.entryexit,
+                v.personofintrest
+            ])
+
+    response = make_response(output.getvalue())
+    response.headers["Content-Disposition"] = "attachment; filename=visitor_log.csv"
+    response.headers["Content-Type"] = "text/csv"
+    return response
 
 if __name__ == '__main__':
     with app.app_context():
